@@ -1,0 +1,29 @@
+
+
+ .wallet-adapter-button{
+    width: 100%;
+    z-index: 50;
+    background: #1d1b1f !important;
+    padding:15px 25px !important;
+    display: flex;
+    align-items: center;
+    column-gap: 15px;
+    color: white;
+    border-radius: 10px;
+    font-weight: 500;
+    /* border: 1px solid #5c75a89e; */
+  }
+  
+  .wallet-adapter-button-trigger{
+    width: 100%;
+    background: #262626;
+    padding:8px 15px !important;
+    display: flex;
+    align-items: center;
+    column-gap: 15px;
+    color: white;
+    border-radius: 10px;
+    font-weight: 500;
+    
+  
+  }
