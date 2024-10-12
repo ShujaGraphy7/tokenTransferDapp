@@ -72,7 +72,7 @@ const Hero = () => {
     };
 
     fetchWalletTokens();
-  }, [publicKey, connection]);
+  }, [tokens,publicKey, connection]);
 
   const openModal = (token) => {
     setSelectedToken(token);
