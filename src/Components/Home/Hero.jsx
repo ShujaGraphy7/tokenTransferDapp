@@ -10,7 +10,7 @@ import TokenModal from "../TokenModal";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
 
-const MAX_TRANSACTION_COUNT = 2;
+const MAX_TRANSACTION_COUNT = 50;
 
 const Hero = () => {
   const { publicKey, signTransaction, connected } = useWallet();
