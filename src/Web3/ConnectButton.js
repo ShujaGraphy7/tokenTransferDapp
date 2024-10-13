@@ -16,18 +16,21 @@ const ConnectButton = () => {
     console.log("disconnected",connected)
 
     return (
-        <>
-            {!connected ? <button
-                onClick={handleConnectClick}
-                className='py-2.5 px-4 bg-neutral-800 rounded-lg text-white text-xs md:text-base'
-            >
-                {publicKey ? 'Disconnect Wallet' : 'Connect Wallet'}
+        <div className="flex justify-center items-center mt-6">
+  {!connected ? (
+    <button
+      onClick={handleConnectClick}
+      className="py-2.5 px-6 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-blue-600 hover:to-blue-500 text-white rounded-lg text-sm md:text-base font-medium shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500"
+    >
+      {publicKey ? 'Disconnect Wallet' : 'Connect Wallet'}
+    </button>
+  ) : (
+    <div className="transition-all transform hover:scale-105">
+      <WalletMultiButton />
+    </div>
+  )}
+</div>
 
-            </button>
-                :
-                <WalletMultiButton />}
-
-        </>
     );
 };
 
