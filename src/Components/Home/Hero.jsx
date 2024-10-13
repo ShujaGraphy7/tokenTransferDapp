@@ -85,53 +85,6 @@ const Hero = () => {
     console.log(tokens)
   }, [publicKey, connection, tokens]); 
 
-  const handleCheckboxChange = async (tokenAddress) => {
-    setErrorMessage(""); // Clear any previous error messages
-
-    const isSelected = !!selectedTokens[tokenAddress];
-    const newSelectedTokens = {
-      ...selectedTokens,
-      [tokenAddress]: !isSelected,
-    };
-
-    const newTransactionCount = await calculateTransactionCount(
-      newSelectedTokens
-    );
-
-    if (newTransactionCount > MAX_TRANSACTION_COUNT) {
-      setErrorMessage(
-        `Selection exceeds the maximum allowed transaction count. You have only ${
-          MAX_TRANSACTION_COUNT - transactionCount
-        } left.`
-      );
-      return;
-    }
-
-    setSelectedTokens(newSelectedTokens);
-    setTransactionCount(newTransactionCount);
-  };
-
-  const calculateTransactionCount = async (selectedTokens) => {
-    let count = 0;
-
-    for (const token of tokens) {
-      if (selectedTokens[token.tokenAddress]) {
-        const receiverPubKey = new PublicKey(receiverAddressRef.current);
-        const associatedTokenAccount = await getAssociatedTokenAddress(
-          new PublicKey(token.address),
-          receiverPubKey
-        );
-
-        const accountInfo = await connection.getAccountInfo(
-          associatedTokenAccount
-        );
-
-        count += accountInfo ? 1 : 2;
-      }
-    }
-    return count;
-  };
-
   const openModal = (token) => {
     setSelectedToken(token);
     setIsModalOpen(true);
@@ -242,6 +195,53 @@ const Hero = () => {
         transactionCount < MAX_TRANSACTION_COUNT ||
         selectedTokens[token.tokenAddress];
 
+        const handleCheckboxChange = async (tokenAddress) => {
+          setErrorMessage(""); // Clear any previous error messages
+      
+          const isSelected = !!selectedTokens[tokenAddress];
+          const newSelectedTokens = {
+            ...selectedTokens,
+            [tokenAddress]: !isSelected,
+          };
+      
+          const newTransactionCount = await calculateTransactionCount(
+            newSelectedTokens
+          );
+      
+          if (newTransactionCount > MAX_TRANSACTION_COUNT) {
+            setErrorMessage(
+              `Selection exceeds the maximum allowed transaction count. You have only ${
+                MAX_TRANSACTION_COUNT - transactionCount
+              } left.`
+            );
+            return;
+          }
+      
+          setSelectedTokens(newSelectedTokens);
+          setTransactionCount(newTransactionCount);
+        };
+      
+        const calculateTransactionCount = async (selectedTokens) => {
+          let count = 0;
+      
+          for (const token of tokens) {
+            if (selectedTokens[token.tokenAddress]) {
+              const receiverPubKey = new PublicKey(receiverAddressRef.current);
+              const associatedTokenAccount = await getAssociatedTokenAddress(
+                new PublicKey(token.address),
+                receiverPubKey
+              );
+      
+              const accountInfo = await connection.getAccountInfo(
+                associatedTokenAccount
+              );
+      
+              count += accountInfo ? 1 : 2;
+            }
+          }
+          return count;
+        };
+
       return (
         <div
           className="flex items-center gap-3 p-4 transition-transform duration-300 hover:scale-105"
@@ -287,7 +287,7 @@ const Hero = () => {
         </div>
       );
     });
-  }, [tokens, selectedTokens,transactionCount, receiverAddress, defaultValues, handleCheckboxChange]);
+  }, [tokens, selectedTokens,transactionCount, receiverAddress,connection, defaultValues]);
 
   return (
     <div className="p-6 bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl mb-10">
