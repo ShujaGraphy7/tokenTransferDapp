@@ -83,7 +83,7 @@ const Hero = () => {
 
     fetchWalletTokens();
     console.log(tokens)
-  }, [publicKey, connection]);
+  }, [publicKey, connection, tokens]); 
 
   const handleCheckboxChange = async (tokenAddress) => {
     setErrorMessage(""); // Clear any previous error messages
@@ -287,7 +287,7 @@ const Hero = () => {
         </div>
       );
     });
-  }, [tokens, selectedTokens, transactionCount, receiverAddress]);
+  }, [tokens, selectedTokens,transactionCount, receiverAddress, defaultValues, handleCheckboxChange]);
 
   return (
     <div className="p-6 bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl mb-10">
