@@ -22,8 +22,11 @@ const TokenModal = ({ token, isOpen, onClose, onUpdate, defaultValue }) => {
     };
     const handleChange = (e) => {
         const value = e.target.value;
+        
         if (value === '' || Number(value) <= token.tokenAmount) {
-            setNewAmount(value);
+            let amountToSet = value >= 0 ? value : 0;
+        setNewAmount(amountToSet);
+            //setNewAmount(value);
             setError(''); // Clear error if valid
         } else {
             setError('Amount cannot be greater than the current amount.');

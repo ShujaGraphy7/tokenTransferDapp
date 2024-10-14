@@ -7,43 +7,50 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import TokenModal from "../TokenModal";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
 const MAX_TRANSACTION_COUNT = 50;
 
 const Hero = () => {
   const { publicKey, signTransaction, connected } = useWallet();
-  // const { connection } = useConnection();
-  const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
+  const { connection } = useConnection()
+  //const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
 
-  const connection = new Connection(QUICKNODE_RPC_Mainnet);
+  // const connection = new Connection(QUICKNODE_RPC_Mainnet);
 
   const [tokens, setTokens] = useState([]);
   const [selectedToken, setSelectedToken] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [receiverAddress, setReceiverAddress] = useState("");
   const receiverAddressRef = useRef(""); // Ref to track latest address
+  const topRef = useRef(null);
   const [defaultValues, setDefaultValues] = useState({});
+
   const [selectedTokens, setSelectedTokens] = useState({});
   const [defaultAmount, setDefaultAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [tokenLoading, setTokenLoading] = useState(true);
   const [transactionMessage, setTransactionMessage] = useState("");
   const [transactionCount, setTransactionCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
+  const [defaultError,setDefaultError] = useState(false);
 
   useEffect(() => {
     setErrorMessage(
-      !receiverAddress ? "Enter Valid Reciever Address to check Tokens" : ""
+      !receiverAddress ? "Enter Valid Reciever Address to select Tokens" : ""
     );
     receiverAddressRef.current = receiverAddress;
+    setTransactionCount(0)
+    setSelectedTokens({});
   }, [receiverAddress]);
 
-  
+
 
   useEffect(() => {
-    if (!publicKey || tokens.length>0) return;
-    
+    if (!publicKey || tokens.length > 0) return;
+
     // let checkAddress = "CRiZmkEEYaoERGonNz5iWxKjpYRCnCrryCfqMwqyyNMf"
 
 
@@ -57,7 +64,7 @@ const Hero = () => {
             ),
           }
         );
-  
+
         const tokenDetails = await Promise.all(
           tokenAccounts.value.map(async (accountInfo) => {
             const { mint: mintAddress, tokenAmount } =
@@ -67,7 +74,7 @@ const Hero = () => {
               new PublicKey(mintAddress)
             );
             const decimals = mintAccount.decimals;
-  
+
             return {
               tokenAddress: accountInfo.pubkey.toString(),
               tokenName: `Token (${mintAddress.slice(0, 5)}...)`,
@@ -77,21 +84,23 @@ const Hero = () => {
             };
           })
         );
-  
+
         setTokens(tokenDetails);
         const initialDefaults = Object.fromEntries(
           tokenDetails.map((token) => [token.tokenAddress, ""])
         );
         setDefaultValues(initialDefaults);
+        setTokenLoading(false)
       } catch (error) {
         console.error("Error fetching tokens:", error);
         setErrorMessage("Failed to fetch tokens. Please try again.");
+        setTokenLoading(false)
       }
     };
 
     fetchWalletTokens();
-    console.log(tokens);
-  }, [publicKey,connection, tokens]);
+    //console.log(tokens);
+  }, [publicKey, connection, tokens]);
 
   const openModal = (token) => {
     setSelectedToken(token);
@@ -103,6 +112,21 @@ const Hero = () => {
     setSelectedToken(null);
   };
 
+  const handleAmountChange = (e) => {
+    setDefaultError(false);
+    const value = e.target.value;
+    let amountToSet = value >= 0 ? value : 0;
+    setDefaultAmount(amountToSet);
+    const updatedAmounts = Object.fromEntries(
+      tokens.map((token) => [token.tokenAddress, amountToSet])
+    );
+    setDefaultValues(updatedAmounts);
+    if (value < 0) {
+      setErrorMessage("Amount cannot be negative.");
+    } else {
+      setErrorMessage(""); 
+    }
+  };
   const handleUpdateToken = (tokenAddress, newAmount) => {
     setDefaultValues((prev) => ({
       ...prev,
@@ -111,6 +135,10 @@ const Hero = () => {
     closeModal();
   };
 
+ 
+  
+
+
   const sendTokens = async () => {
     setErrorMessage(""); // Clear previous error messages
 
@@ -118,8 +146,13 @@ const Hero = () => {
       !connected ||
       !receiverAddressRef.current ||
       !parseFloat(defaultAmount)
+      
     ) {
-      setErrorMessage("Please provide valid input.");
+      if (topRef.current) {
+        topRef.current.scrollIntoView({ behavior: "smooth" }); // Scroll to the ref
+      }
+      setDefaultError(true);
+      setErrorMessage("Please provide valid default amount.");
       return;
     }
 
@@ -134,8 +167,9 @@ const Hero = () => {
       );
 
       for (const token of selectedTokensArray) {
-        const amount = parseFloat(defaultAmount) * 10 ** token.decimals;
-
+       
+        const amount = parseFloat(defaultValues[token.tokenAddress]) * 10 ** token.decimals;
+      
         const senderTokenAccount = await getAssociatedTokenAddress(
           new PublicKey(token.address),
           publicKey
@@ -148,6 +182,7 @@ const Hero = () => {
         const accountInfo = await connection.getAccountInfo(
           receiverTokenAccount
         );
+       
         if (!accountInfo) {
           transaction.add(
             createAssociatedTokenAccountInstruction(
@@ -187,8 +222,12 @@ const Hero = () => {
       await connection.confirmTransaction(signature, "confirmed");
 
       setTransactionMessage(`Transaction successful: ${signature}`);
+      if (topRef.current) {
+        topRef.current.scrollIntoView({ behavior: "smooth" }); // Scroll to the ref
+      }
       setSelectedTokens({}); // Clear selections after success
-      setDefaultAmount(""); // Reset amount
+      //setDefaultAmount(""); // Reset amount
+      setTransactionCount(0)
     } catch (error) {
       console.error("Error sending tokens:", error);
       setErrorMessage("Transaction failed. Please try again.");
@@ -202,8 +241,10 @@ const Hero = () => {
       const isSelectable =
         transactionCount < MAX_TRANSACTION_COUNT ||
         selectedTokens[token.tokenAddress];
+        
 
       const handleCheckboxChange = async (tokenAddress) => {
+        
         setErrorMessage(""); // Clear any previous error messages
 
         const isSelected = !!selectedTokens[tokenAddress];
@@ -218,8 +259,7 @@ const Hero = () => {
 
         if (newTransactionCount > MAX_TRANSACTION_COUNT) {
           setErrorMessage(
-            `Selection exceeds the maximum allowed transaction count. You have only ${
-              MAX_TRANSACTION_COUNT - transactionCount
+            `Selection exceeds the maximum allowed transaction count. You have only ${MAX_TRANSACTION_COUNT - transactionCount
             } left.`
           );
           return;
@@ -252,7 +292,7 @@ const Hero = () => {
 
       return (
         <div
-          className="flex items-center gap-3 p-4 transition-transform duration-300 hover:scale-105"
+          className="flex items-center  gap-3 p-4 transition-transform duration-300 hover:scale-105"
           key={token.tokenAddress}
         >
           <input
@@ -264,7 +304,7 @@ const Hero = () => {
           />
 
           <div
-            className="flex flex-col w-full bg-gradient-to-l from-gray-900 via-gray-800 to-gray-700 rounded-lg border border-gray-600 shadow-md transition-shadow duration-300 hover:shadow-xl hover:bg-gray-800"
+            className={` ${ parseFloat(token.tokenAmount)< parseFloat(defaultValues[token.tokenAddress]) ?"border-red-600 ":"border-gray-600 "} flex  flex-col w-full bg-gradient-to-l from-gray-900 via-gray-800 to-gray-700 rounded-lg border border-gray-600 shadow-md transition-shadow duration-300 hover:shadow-xl hover:bg-gray-800`}
             onClick={() => openModal(token)}
           >
             <div className="flex flex-col p-4">
@@ -284,12 +324,21 @@ const Hero = () => {
                   {token.tokenAmount}
                 </span>
               </div>
+              <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <strong className="text-lg text-white">Default Value:</strong>
                 <span className="text-sm text-gray-400">
                   {defaultValues[token.tokenAddress] || "N/A"}
                 </span>
               </div>
+              {parseFloat(token.tokenAmount)< parseFloat(defaultValues[token.tokenAddress]) ?
+              <>
+               <span className="text-sm font-medium text-white bg-red-500 p-2 rounded-md">
+                You don't have enough tokens
+                </span></>:<></>}
+                <button className="px-4 py-2 bg-gray-500 rounded-lg text-white">Update value</button>
+              </div>
+              
             </div>
           </div>
         </div>
@@ -305,7 +354,7 @@ const Hero = () => {
   ]);
 
   return (
-    <div className="p-6 bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl mb-10">
+    <div ref={topRef} className="p-6 bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl mb-10">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-white font-semibold mb-2">
@@ -326,16 +375,23 @@ const Hero = () => {
           <input
             type="number"
             value={defaultAmount}
-            onChange={(e) => {
-              const value = e.target.value;
-              setDefaultAmount(value);
-              if (value < 0) {
-                setErrorMessage("Amount cannot be negative.");
-              } else {
-                setErrorMessage(""); // Clear error on valid input
-              }
-            }}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-gray-300"
+            onChange={handleAmountChange
+              // (e) => {
+              // const value = e.target.value;
+              // setDefaultAmount(value);
+              // if( e.target.value>=0){
+              //   setDefaultAmount(e.target.value);
+              // }else{
+              //   setDefaultAmount(0)
+              // }
+              // if (value < 0) {
+              //   setErrorMessage("Amount cannot be negative.");
+              // } else {
+              //   setErrorMessage(""); // Clear error on valid input
+              // }
+            //}
+          }
+            className={` ${defaultError?"border-red-700":"border-gray-700"} w-full p-3 bg-gray-800 border  rounded-lg text-gray-300`}
             placeholder="Enter amount in tokens"
             aria-label="Default Amount"
           />
@@ -362,13 +418,20 @@ const Hero = () => {
       </div>
 
       <div className="mt-6">
-        {tokens.length > 0 ? (
-          <div className="space-y-4">{tokenList}</div>
-        ) : (
-          <p className="text-gray-400 text-center">
-            No tokens found for the specified wallet.
-          </p>
-        )}
+        {
+          publicKey ? (
+
+            tokenLoading ? <AiOutlineLoading3Quarters className="text-3xl text-white animate-spin text-center w-full"/> :
+              tokens.length > 0 ? (
+                <div className="space-y-4">{tokenList}</div>
+              ) : (
+                <p className="text-gray-400 text-center">
+                  No tokens found for the specified wallet.
+                </p>
+              )
+          ) : <p className="text-gray-400 text-center">
+            Connect your wallet to continue
+          </p>}
       </div>
 
       {selectedToken && (
