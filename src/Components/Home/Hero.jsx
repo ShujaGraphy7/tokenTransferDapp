@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { AddressLookupTableProgram, Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   createTransferInstruction,
   getMint,
@@ -7,7 +7,7 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import TokenModal from "../TokenModal";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
@@ -101,7 +101,7 @@ const Hero = () => {
 
     fetchWalletTokens();
     //console.log(tokens);
-  }, [publicKey,refresh]);
+  }, [publicKey,refresh, connection]);
 
   const openModal = (token) => {
     setSelectedToken(token);
@@ -363,7 +363,6 @@ const Hero = () => {
     selectedTokens,
     transactionCount,
     receiverAddress,
-    publicKey,
     connection,
     defaultValues,
   ]);
