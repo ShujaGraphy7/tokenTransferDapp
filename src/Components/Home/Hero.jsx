@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   createTransferInstruction,
   getMint,
@@ -7,14 +7,17 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import TokenModal from "../TokenModal";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
 
 const MAX_TRANSACTION_COUNT = 50;
 
 const Hero = () => {
   const { publicKey, signTransaction, connected } = useWallet();
-  const { connection } = useConnection();
+  // const { connection } = useConnection();
+  const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
+
+  const connection = new Connection(QUICKNODE_RPC_Mainnet);
 
   const [tokens, setTokens] = useState([]);
   const [selectedToken, setSelectedToken] = useState(null);
@@ -30,24 +33,31 @@ const Hero = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    setErrorMessage(!receiverAddress ? "Enter Valid Reciever Address to check Tokens" : "")
+    setErrorMessage(
+      !receiverAddress ? "Enter Valid Reciever Address to check Tokens" : ""
+    );
     receiverAddressRef.current = receiverAddress;
   }, [receiverAddress]);
 
+  
+
   useEffect(() => {
-    if (!publicKey) return;
+    if (!publicKey || tokens.length>0) return;
+    
+    // let checkAddress = "CRiZmkEEYaoERGonNz5iWxKjpYRCnCrryCfqMwqyyNMf"
+
 
     const fetchWalletTokens = async () => {
       try {
         const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-          publicKey,
+          new PublicKey(publicKey),
           {
             programId: new PublicKey(
               "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
             ),
           }
         );
-
+  
         const tokenDetails = await Promise.all(
           tokenAccounts.value.map(async (accountInfo) => {
             const { mint: mintAddress, tokenAmount } =
@@ -57,19 +67,17 @@ const Hero = () => {
               new PublicKey(mintAddress)
             );
             const decimals = mintAccount.decimals;
-
+  
             return {
               tokenAddress: accountInfo.pubkey.toString(),
               tokenName: `Token (${mintAddress.slice(0, 5)}...)`,
-              tokenAmount: (tokenAmount.uiAmount / 10 ** decimals).toFixed(
-                decimals
-              ),
+              tokenAmount: tokenAmount.uiAmount.toFixed(decimals),
               address: mintAddress,
               decimals,
             };
           })
         );
-
+  
         setTokens(tokenDetails);
         const initialDefaults = Object.fromEntries(
           tokenDetails.map((token) => [token.tokenAddress, ""])
@@ -82,14 +90,14 @@ const Hero = () => {
     };
 
     fetchWalletTokens();
-    console.log(tokens)
-  }, [publicKey, connection, tokens]); 
+    console.log(tokens);
+  }, [publicKey,connection, tokens]);
 
   const openModal = (token) => {
     setSelectedToken(token);
     setIsModalOpen(true);
   };
-  
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedToken(null);
@@ -195,52 +203,52 @@ const Hero = () => {
         transactionCount < MAX_TRANSACTION_COUNT ||
         selectedTokens[token.tokenAddress];
 
-        const handleCheckboxChange = async (tokenAddress) => {
-          setErrorMessage(""); // Clear any previous error messages
-      
-          const isSelected = !!selectedTokens[tokenAddress];
-          const newSelectedTokens = {
-            ...selectedTokens,
-            [tokenAddress]: !isSelected,
-          };
-      
-          const newTransactionCount = await calculateTransactionCount(
-            newSelectedTokens
+      const handleCheckboxChange = async (tokenAddress) => {
+        setErrorMessage(""); // Clear any previous error messages
+
+        const isSelected = !!selectedTokens[tokenAddress];
+        const newSelectedTokens = {
+          ...selectedTokens,
+          [tokenAddress]: !isSelected,
+        };
+
+        const newTransactionCount = await calculateTransactionCount(
+          newSelectedTokens
+        );
+
+        if (newTransactionCount > MAX_TRANSACTION_COUNT) {
+          setErrorMessage(
+            `Selection exceeds the maximum allowed transaction count. You have only ${
+              MAX_TRANSACTION_COUNT - transactionCount
+            } left.`
           );
-      
-          if (newTransactionCount > MAX_TRANSACTION_COUNT) {
-            setErrorMessage(
-              `Selection exceeds the maximum allowed transaction count. You have only ${
-                MAX_TRANSACTION_COUNT - transactionCount
-              } left.`
+          return;
+        }
+
+        setSelectedTokens(newSelectedTokens);
+        setTransactionCount(newTransactionCount);
+      };
+
+      const calculateTransactionCount = async (selectedTokens) => {
+        let count = 0;
+
+        for (const token of tokens) {
+          if (selectedTokens[token.tokenAddress]) {
+            const receiverPubKey = new PublicKey(receiverAddressRef.current);
+            const associatedTokenAccount = await getAssociatedTokenAddress(
+              new PublicKey(token.address),
+              receiverPubKey
             );
-            return;
+
+            const accountInfo = await connection.getAccountInfo(
+              associatedTokenAccount
+            );
+
+            count += accountInfo ? 1 : 2;
           }
-      
-          setSelectedTokens(newSelectedTokens);
-          setTransactionCount(newTransactionCount);
-        };
-      
-        const calculateTransactionCount = async (selectedTokens) => {
-          let count = 0;
-      
-          for (const token of tokens) {
-            if (selectedTokens[token.tokenAddress]) {
-              const receiverPubKey = new PublicKey(receiverAddressRef.current);
-              const associatedTokenAccount = await getAssociatedTokenAddress(
-                new PublicKey(token.address),
-                receiverPubKey
-              );
-      
-              const accountInfo = await connection.getAccountInfo(
-                associatedTokenAccount
-              );
-      
-              count += accountInfo ? 1 : 2;
-            }
-          }
-          return count;
-        };
+        }
+        return count;
+      };
 
       return (
         <div
@@ -287,7 +295,14 @@ const Hero = () => {
         </div>
       );
     });
-  }, [tokens, selectedTokens,transactionCount, receiverAddress,connection, defaultValues]);
+  }, [
+    tokens,
+    selectedTokens,
+    transactionCount,
+    receiverAddress,
+    connection,
+    defaultValues,
+  ]);
 
   return (
     <div className="p-6 bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl mb-10">
@@ -358,13 +373,12 @@ const Hero = () => {
 
       {selectedToken && (
         <TokenModal
-        token={selectedToken}
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onUpdate={handleUpdateToken}
-        defaultValue={defaultValues[selectedToken.tokenAddress] || ''} // Pass current default value or empty string
-    />
-    
+          token={selectedToken}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onUpdate={handleUpdateToken}
+          defaultValue={defaultValues[selectedToken.tokenAddress] || ""} // Pass current default value or empty string
+        />
       )}
 
       <div className="flex justify-end mt-8">
