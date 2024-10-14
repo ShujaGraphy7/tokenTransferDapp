@@ -7,7 +7,7 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import TokenModal from "../TokenModal";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 

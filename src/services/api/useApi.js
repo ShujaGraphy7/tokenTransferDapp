@@ -1,5 +1,5 @@
 import { useCallback, useState,useMemo } from "react"
-import { fetchDataPost,postJsonData } from "./apiUtils"
+import { fetchDataPost } from "./apiUtils"
 export const useApi = () => {
     // State to hold the API call results and statuses
     const [apiStates, setApiStates] = useState({});
