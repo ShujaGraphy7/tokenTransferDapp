@@ -7,18 +7,18 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import TokenModal from "../TokenModal";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import TransactionMessage from "../../utils/TransactionMessage";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
 const MAX_TRANSACTION_COUNT = 50;
+const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
+const connection = new Connection(QUICKNODE_RPC_Mainnet);
 
 const Hero = () => {
   const { publicKey, signTransaction, connected } = useWallet();
-  //const { connection } = useConnection()
-  const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
+  // const { connection } = useConnection()
 
-   const connection = new Connection(QUICKNODE_RPC_Mainnet);
 
   const [tokens, setTokens] = useState([]);
   const [selectedToken, setSelectedToken] = useState(null);
@@ -75,7 +75,7 @@ const Hero = () => {
               new PublicKey(mintAddress)
             );
             const decimals = mintAccount.decimals;
-
+console.log(accountInfo)
             return {
               tokenAddress: accountInfo.pubkey.toString(),
               tokenName: `Token (${mintAddress.slice(0, 5)}...)`,
@@ -101,7 +101,7 @@ const Hero = () => {
 
     fetchWalletTokens();
     //console.log(tokens);
-  }, [publicKey,refresh, connection]);
+  }, [publicKey,refresh]);
 
   const openModal = (token) => {
     setSelectedToken(token);
@@ -363,7 +363,6 @@ const Hero = () => {
     selectedTokens,
     transactionCount,
     receiverAddress,
-    connection,
     defaultValues,
   ]);
 
@@ -412,10 +411,17 @@ const Hero = () => {
           {errorMessage}
         </div>
       )}
-      <div className="mt-4">
-        <span className="text-gray-300">
-          Transaction Count: {transactionCount}
-        </span>
+      <div className="flex gap-10">
+        <div className="mt-4">
+          <span className="text-gray-300">
+            Transaction Count: {transactionCount}
+          </span>
+        </div>
+        <div className="mt-4">
+          <span className="text-gray-300">
+            Total Tokens Found: {tokens.length}
+          </span>
+        </div>
       </div>
 
       <div className="mt-6">
