@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { AddressLookupTableProgram, Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   createTransferInstruction,
   getMint,
@@ -15,10 +15,10 @@ const MAX_TRANSACTION_COUNT = 50;
 
 const Hero = () => {
   const { publicKey, signTransaction, connected } = useWallet();
-  const { connection } = useConnection()
-  //const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
+  //const { connection } = useConnection()
+  const QUICKNODE_RPC_Mainnet = "https://orbital-morning-wind.solana-mainnet.quiknode.pro/7887b7763b7b75a4abf73f64907bcc595acf8d85";
 
-  // const connection = new Connection(QUICKNODE_RPC_Mainnet);
+   const connection = new Connection(QUICKNODE_RPC_Mainnet);
 
   const [tokens, setTokens] = useState([]);
   const [selectedToken, setSelectedToken] = useState(null);
@@ -36,6 +36,7 @@ const Hero = () => {
   const [transactionCount, setTransactionCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [defaultError,setDefaultError] = useState(false);
+  const [refresh,setRefresh] = useState(false)
 
   useEffect(() => {
     setErrorMessage(
@@ -49,7 +50,7 @@ const Hero = () => {
 
 
   useEffect(() => {
-    if (!publicKey || tokens.length > 0) return;
+    if (!publicKey  ) return;
 
     // let checkAddress = "CRiZmkEEYaoERGonNz5iWxKjpYRCnCrryCfqMwqyyNMf"
 
@@ -100,7 +101,7 @@ const Hero = () => {
 
     fetchWalletTokens();
     //console.log(tokens);
-  }, [publicKey, connection, tokens]);
+  }, [publicKey,refresh]);
 
   const openModal = (token) => {
     setSelectedToken(token);
@@ -138,7 +139,9 @@ const Hero = () => {
  
   
 
-
+  
+ 
+ 
   const sendTokens = async () => {
     setErrorMessage(""); // Clear previous error messages
 
@@ -226,16 +229,27 @@ const Hero = () => {
         topRef.current.scrollIntoView({ behavior: "smooth" }); // Scroll to the ref
       }
       setSelectedTokens({}); // Clear selections after success
-      //setDefaultAmount(""); // Reset amount
+      setDefaultAmount(""); // Reset amount
       setTransactionCount(0)
+      setRefresh(!refresh);
     } catch (error) {
+      setDefaultAmount("");
       console.error("Error sending tokens:", error);
-      setErrorMessage("Transaction failed. Please try again.");
+     // Check if the error message includes 'Transaction too large'
+  if (error.message && error.message.includes("Transaction too large")) {
+    setErrorMessage("Transaction too large. Please reduce the number of selected tokens.");
+  } else {
+    setErrorMessage("Transaction failed. Please try again.");
+  }
+      if (topRef.current) {
+        topRef.current.scrollIntoView({ behavior: "smooth" }); // Scroll to the ref
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  
   const tokenList = useMemo(() => {
     return tokens.map((token) => {
       const isSelectable =
@@ -349,6 +363,7 @@ const Hero = () => {
     selectedTokens,
     transactionCount,
     receiverAddress,
+    publicKey,
     connection,
     defaultValues,
   ]);
@@ -376,20 +391,7 @@ const Hero = () => {
             type="number"
             value={defaultAmount}
             onChange={handleAmountChange
-              // (e) => {
-              // const value = e.target.value;
-              // setDefaultAmount(value);
-              // if( e.target.value>=0){
-              //   setDefaultAmount(e.target.value);
-              // }else{
-              //   setDefaultAmount(0)
-              // }
-              // if (value < 0) {
-              //   setErrorMessage("Amount cannot be negative.");
-              // } else {
-              //   setErrorMessage(""); // Clear error on valid input
-              // }
-            //}
+              
           }
             className={` ${defaultError?"border-red-700":"border-gray-700"} w-full p-3 bg-gray-800 border  rounded-lg text-gray-300`}
             placeholder="Enter amount in tokens"
@@ -430,7 +432,7 @@ const Hero = () => {
                 </p>
               )
           ) : <p className="text-gray-400 text-center">
-            Connect your wallet to continue
+            Connect your wallet to continue ...
           </p>}
       </div>
 
