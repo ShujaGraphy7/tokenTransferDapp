@@ -68,6 +68,7 @@ const Hero = () => {
 
         const tokenDetails = await Promise.all(
           tokenAccounts.value.map(async (accountInfo) => {
+            console.log("account-info",accountInfo)
             const { mint: mintAddress, tokenAmount } =
               accountInfo.account.data.parsed.info;
             const mintAccount = await getMint(
@@ -306,7 +307,7 @@ const Hero = () => {
 
       return (
         <div
-          className="flex items-center  gap-3 p-4 transition-transform duration-300 hover:scale-105"
+          className="flex items-center  gap-3 md:p-4 transition-transform duration-300 hover:scale-105"
           key={token.tokenAddress}
         >
           <input
@@ -321,15 +322,18 @@ const Hero = () => {
             className={` ${ parseFloat(token.tokenAmount)< parseFloat(defaultValues[token.tokenAddress]) ?"border-red-600 ":"border-gray-600 "} flex  flex-col w-full bg-gradient-to-l from-gray-900 via-gray-800 to-gray-700 rounded-lg border border-gray-600 shadow-md transition-shadow duration-300 hover:shadow-xl hover:bg-gray-800`}
             onClick={() => openModal(token)}
           >
-            <div className="flex flex-col p-4">
+            <div className="flex flex-col p-2 md:p-4">
               <div className="flex justify-between items-center mb-2">
                 <strong className="text-lg text-white">Token Name:</strong>
                 <span className="text-sm text-gray-400">{token.tokenName}</span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <strong className="text-lg text-white">Token Address:</strong>
-                <span className="text-sm text-gray-400">
+                <span className="text-sm hidden md:block text-gray-400">
                   {token.tokenAddress}
+                </span>
+                <span className="text-sm block md:hidden text-gray-400">
+                  {token.tokenAddress?.slice(0,9) }... {token.tokenAddress?.slice(-5,-1) }
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
